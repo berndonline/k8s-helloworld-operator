@@ -1,0 +1,7 @@
+apiVersion: techbloc.net.techbloc.net/v1
+kind: Helloworld
+metadata:
+  name: helloworld-sample
+spec:
+  # Add fields here
+  foo: bar
