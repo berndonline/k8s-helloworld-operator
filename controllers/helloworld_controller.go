@@ -36,8 +36,8 @@ type HelloworldReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=cache.example.com,resources=helloworlds,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cache.example.com,resources=helloworlds/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=app.techbloc.net,resources=helloworlds,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=app.techbloc.net,resources=helloworlds/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
 
