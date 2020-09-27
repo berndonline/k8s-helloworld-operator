@@ -1,8 +1,12 @@
 /*
+
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -10,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
+package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,12 +28,12 @@ type HelloworldSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Size int32 `json:"size"`
+	// Foo is an example field of Helloworld. Edit Helloworld_types.go to remove/update
+	Foo string `json:"foo,omitempty"`
 }
 
 // HelloworldStatus defines the observed state of Helloworld
 type HelloworldStatus struct {
-	Nodes []string `json:"nodes"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -37,7 +41,7 @@ type HelloworldStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// Helloworld is the Schema for the memcacheds API
+// Helloworld is the Schema for the helloworlds API
 type Helloworld struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
