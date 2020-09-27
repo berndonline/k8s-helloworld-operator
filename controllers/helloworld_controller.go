@@ -141,8 +141,8 @@ func (r *HelloworldReconciler) deploymentForHelloworld(m *appv1.Helloworld) *app
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image:   "berndonline/go-helloworld:latest",
-						Name:    "go-helloworld",
+						Image: "berndonline/go-helloworld:latest",
+						Name:  "go-helloworld",
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8080,
 							Name:          "http",
@@ -171,7 +171,6 @@ func getPodNames(pods []corev1.Pod) []string {
 	}
 	return podNames
 }
-
 
 func (r *HelloworldReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).

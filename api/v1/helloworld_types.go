@@ -30,15 +30,15 @@ type HelloworldSpec struct {
 
 	// Foo is an example field of Helloworld. Edit Helloworld_types.go to remove/update
 	Message string `json:"message"`
-	Size int32 `json:"size"`
+	Size    int32  `json:"size"`
 }
 
 // HelloworldStatus defines the observed state of Helloworld
 type HelloworldStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	Message string `json:"message"`
-	Nodes []string `json:"nodes"`
+	Message string   `json:"message"`
+	Nodes   []string `json:"nodes"`
 }
 
 // +kubebuilder:object:root=true
