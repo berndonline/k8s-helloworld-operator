@@ -1,12 +1,8 @@
 /*
-
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,8 +36,10 @@ type HelloworldReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=app.techbloc.net,resources=helloworlds,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=app.techbloc.net,resources=helloworlds/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cache.example.com,resources=helloworlds,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cache.example.com,resources=helloworlds/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
 
 func (r *HelloworldReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -120,7 +118,7 @@ func (r *HelloworldReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	return ctrl.Result{}, nil
 }
 
-// deploymentForHelloworld returns a Helloworld Deployment object
+// deploymentForHelloworld returns a helloworld Deployment object
 func (r *HelloworldReconciler) deploymentForHelloworld(m *appv1.Helloworld) *appsv1.Deployment {
 	ls := labelsForHelloworld(m.Name)
 	replicas := m.Spec.Size
@@ -141,8 +139,8 @@ func (r *HelloworldReconciler) deploymentForHelloworld(m *appv1.Helloworld) *app
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image: "berndonline/go-helloworld:latest",
-						Name:  "go-helloworld",
+						Image:   "berndonline/go-helloworld:latest",
+						Name:    "go-helloworld",
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8080,
 							Name:          "http",
