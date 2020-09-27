@@ -44,9 +44,8 @@ type HelloworldReconciler struct {
 // +kubebuilder:rbac:groups=app.techbloc.net,resources=helloworlds/status,verbs=get;update;patch
 
 func (r *HelloworldReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx = context.Background()
-	log = r.Log.WithValues("helloworld", req.NamespacedName)
-
+	ctx := context.Background()
+	log := r.Log.WithValues("helloworld", req.NamespacedName)
 	// Fetch the Helloworld instance
 	helloworld := &appv1.Helloworld{}
 	err := r.Get(ctx, req.NamespacedName, helloworld)
