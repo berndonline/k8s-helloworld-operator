@@ -139,8 +139,8 @@ func (r *HelloworldReconciler) deploymentForHelloworld(m *appv1alpha1.Helloworld
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image:   "berndonline/go-helloworld:latest",
-						Name:    "go-helloworld",
+						Image: "berndonline/go-helloworld:latest",
+						Name:  "go-helloworld",
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8080,
 							Name:          "http",
