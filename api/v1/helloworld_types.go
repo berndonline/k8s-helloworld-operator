@@ -29,7 +29,6 @@ type HelloworldSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Helloworld. Edit Helloworld_types.go to remove/update
-	Message string `json:"message"`
 	Size    int32  `json:"size"`
 }
 
