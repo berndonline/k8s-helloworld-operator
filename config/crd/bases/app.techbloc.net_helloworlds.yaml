@@ -6,13 +6,13 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.3.0
   creationTimestamp: null
-  name: helloworldren.app.techbloc.net
+  name: helloworlds.app.techbloc.net
 spec:
   group: app.techbloc.net
   names:
     kind: Helloworld
     listKind: HelloworldList
-    plural: helloworldren
+    plural: helloworld
     singular: helloworld
   scope: Namespaced
   subresources:
