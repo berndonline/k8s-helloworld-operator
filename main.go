@@ -27,7 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	techblocnetv1 "github.com/berndonline/k8s-helloworld-operator/api/v1"
+	appv1 "github.com/berndonline/k8s-helloworld-operator/api/v1"
 	"github.com/berndonline/k8s-helloworld-operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
@@ -40,7 +40,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(techblocnetv1.AddToScheme(scheme))
+	utilruntime.Must(appv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 

@@ -24,7 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	techblocnetv1 "github.com/berndonline/k8s-helloworld-operator/api/v1"
+	appv1 "github.com/berndonline/k8s-helloworld-operator/api/v1"
 )
 
 // HelloworldReconciler reconciles a Helloworld object
@@ -34,8 +34,8 @@ type HelloworldReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=techbloc.net.techbloc.net,resources=helloworlds,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=techbloc.net.techbloc.net,resources=helloworlds/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=app.techbloc.net,resources=helloworlds,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=app.techbloc.net,resources=helloworlds/status,verbs=get;update;patch
 
 func (r *HelloworldReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
@@ -48,6 +48,6 @@ func (r *HelloworldReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 
 func (r *HelloworldReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&techblocnetv1.Helloworld{}).
+		For(&appv1.Helloworld{}).
 		Complete(r)
 }

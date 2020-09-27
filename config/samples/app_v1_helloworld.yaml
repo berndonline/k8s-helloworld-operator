@@ -1,4 +1,4 @@
-apiVersion: techbloc.net.techbloc.net/v1
+apiVersion: app.techbloc.net/v1
 kind: Helloworld
 metadata:
   name: helloworld-sample

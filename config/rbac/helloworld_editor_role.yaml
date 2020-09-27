@@ -5,7 +5,7 @@ metadata:
   name: helloworld-editor-role
 rules:
 - apiGroups:
-  - techbloc.net.techbloc.net
+  - app.techbloc.net
   resources:
   - helloworlds
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - techbloc.net.techbloc.net
+  - app.techbloc.net
   resources:
   - helloworlds/status
   verbs:

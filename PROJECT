@@ -3,7 +3,7 @@ layout: go.kubebuilder.io/v2
 projectName: k8s-helloworld-operator
 repo: github.com/berndonline/k8s-helloworld-operator
 resources:
-- group: techbloc.net
+- group: app
   kind: Helloworld
   version: v1
 version: 3-alpha
