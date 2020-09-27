@@ -120,7 +120,7 @@ func (r *HelloworldReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	return ctrl.Result{}, nil
 }
 
-// deploymentForMemcached returns a memcached Deployment object
+// deploymentForHelloworld returns a Helloworld Deployment object
 func (r *HelloworldReconciler) deploymentForHelloworld(m *appv1.Helloworld) *appsv1.Deployment {
 	ls := labelsForHelloworld(m.Name)
 	replicas := m.Spec.Size
