@@ -27,7 +27,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
+	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -164,7 +164,7 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Check if the ingress already exists, if not create a new one
-	foundIngress := &extensionsv1beta1.Ingress{}
+	foundIngress := &networkingv1beta1.Ingress{}
 	err = r.Get(ctx, types.NamespacedName{Name: operator.Name, Namespace: operator.Namespace}, foundIngress)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new deployment
@@ -252,13 +252,13 @@ func (r *OperatorReconciler) serviceForOperator(m *appv1alpha1.Operator) *corev1
 }
 
 // serviceForOperator returns a operator Service object
-func (r *OperatorReconciler) ingressForOperator(m *appv1alpha1.Operator) *extensionsv1beta1.Ingress {
+func (r *OperatorReconciler) ingressForOperator(m *appv1alpha1.Operator) *networkingv1beta1.Ingress {
 	// ls := labelsForOperator(m.Name)
 
-	ingressPaths := []extensionsv1beta1.HTTPIngressPath{
-		extensionsv1beta1.HTTPIngressPath{
+	ingressPaths := []networkingv1beta1.HTTPIngressPath{
+		networkingv1beta1.HTTPIngressPath{
 			Path: "/" + m.Name + "(/|$)(.*)",
-			Backend: extensionsv1beta1.IngressBackend{
+			Backend: networkingv1beta1.IngressBackend{
 				ServiceName: m.Name,
 				ServicePort: intstr.IntOrString{
 					Type:   Int,
@@ -267,19 +267,19 @@ func (r *OperatorReconciler) ingressForOperator(m *appv1alpha1.Operator) *extens
 			},
 		},
 	}
-	ingressSpec := extensionsv1beta1.IngressSpec{
-		Rules: []extensionsv1beta1.IngressRule{
+	ingressSpec := networkingv1beta1.IngressSpec{
+		Rules: []networkingv1beta1.IngressRule{
 			{
 				Host: "",
-				IngressRuleValue: extensionsv1beta1.IngressRuleValue{
-					HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
+				IngressRuleValue: networkingv1beta1.IngressRuleValue{
+					HTTP: &networkingv1beta1.HTTPIngressRuleValue{
 						Paths: ingressPaths,
 					},
 				},
 			},
 		},
 	}
-	ingress := &extensionsv1beta1.Ingress{
+	ingress := &networkingv1beta1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Name,
 			Namespace: m.Namespace,
@@ -316,6 +316,6 @@ func (r *OperatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&appv1alpha1.Operator{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
-		Owns(&extensionsv1beta1.Ingress{}).
+		Owns(&networkingv1beta1.Ingress{}).
 		Complete(r)
 }
