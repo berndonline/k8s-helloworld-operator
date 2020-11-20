@@ -32,6 +32,7 @@ type OperatorSpec struct {
 	Size     int32  `json:"size"`
 	Image    string `json:"image"`
 	Response string `json:"response"`
+	Ingress  string `json:"ingress"`
 }
 
 // OperatorStatus defines the observed state of Operator

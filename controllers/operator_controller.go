@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,6 +45,7 @@ type OperatorReconciler struct {
 // +kubebuilder:rbac:groups=app.helloworld.io,resources=operators/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=app.helloworld.io,resources=operators/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
 
 func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
@@ -123,6 +125,25 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
+	// Check if the deployment already exists, if not create a new one
+	foundService := &corev1.Service{}
+	err = r.Get(ctx, types.NamespacedName{Name: operator.Name, Namespace: operator.Namespace}, foundService)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new deployment
+		dep := r.serviceForOperator(operator)
+		log.Info("Creating a new Service", "Service.Namespace", dep.Namespace, "Service.Name", dep.Name)
+		err = r.Create(ctx, dep)
+		if err != nil {
+			log.Error(err, "Failed to create new Service", "Service.Namespace", dep.Namespace, "Service.Name", dep.Name)
+			return ctrl.Result{}, err
+		}
+		// Deployment created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get Service")
+		return ctrl.Result{}, err
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -130,8 +151,6 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *appsv1.Deployment {
 	ls := labelsForOperator(m.Name)
 	replicas := m.Spec.Size
-	image := m.Spec.Image
-	response := m.Spec.Response
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -149,19 +168,44 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image: &image,
+						Image: m.Spec.Image,
 						Name:  "helloworld",
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8080,
 							Name:          "operator",
 						}},
 						Env: []corev1.EnvVar{{
-							name:  "RESPONSE",
-							value: &response,
+							Name:  "RESPONSE",
+							Value: m.Spec.Response,
 						}},
 					}},
 				},
 			},
+		},
+	}
+	// Set Operator instance as the owner and controller
+	ctrl.SetControllerReference(m, dep, r.Scheme)
+	return dep
+}
+
+// serviceForOperator returns a operator Service object
+func (r *OperatorReconciler) serviceForOperator(m *appv1alpha1.Operator) *corev1.Service {
+	ls := labelsForOperator(m.Name)
+
+	dep := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name,
+			Namespace: m.Namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: ls,
+			Ports: []corev1.ServicePort{
+				corev1.ServicePort{
+					Port: 8080,
+					Name: "port8080",
+				},
+			},
+			Type: "ClusterIP",
 		},
 	}
 	// Set Operator instance as the owner and controller
