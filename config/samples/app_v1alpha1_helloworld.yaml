@@ -1,7 +1,0 @@
-apiVersion: app.techbloc.net/v1alpha1
-kind: Helloworld
-metadata:
-  name: helloworld-sample
-spec:
-  # Add fields here
-  size: 3
