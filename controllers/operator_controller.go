@@ -27,9 +27,11 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	appv1alpha1 "github.com/berndonline/k8s-helloworld-operator/api/v1alpha1"
 )
@@ -41,11 +43,28 @@ type OperatorReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+// IntOrString integer or string
+type IntOrString struct {
+	Type   Type   `protobuf:"varint,1,opt,name=type,casttype=Type"`
+	IntVal int32  `protobuf:"varint,2,opt,name=intVal"`
+	StrVal string `protobuf:"bytes,3,opt,name=strVal"`
+}
+
+// Type represents the stored type of IntOrString.
+type Type int
+
+// Int - Type
+const (
+	Int intstr.Type = iota
+	String
+)
+
 // +kubebuilder:rbac:groups=app.helloworld.io,resources=operators,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=app.helloworld.io,resources=operators/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=app.helloworld.io,resources=operators/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=extensions,resources=ingress,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
 
 func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
@@ -125,7 +144,7 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	// Check if the deployment already exists, if not create a new one
+	// Check if the service already exists, if not create a new one
 	foundService := &corev1.Service{}
 	err = r.Get(ctx, types.NamespacedName{Name: operator.Name, Namespace: operator.Namespace}, foundService)
 	if err != nil && errors.IsNotFound(err) {
@@ -137,10 +156,29 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			log.Error(err, "Failed to create new Service", "Service.Namespace", dep.Namespace, "Service.Name", dep.Name)
 			return ctrl.Result{}, err
 		}
-		// Deployment created successfully - return and requeue
+		// Service created successfully - return and requeue
 		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
 		log.Error(err, "Failed to get Service")
+		return ctrl.Result{}, err
+	}
+
+	// Check if the ingress already exists, if not create a new one
+	foundIngress := &extensionsv1beta1.Ingress{}
+	err = r.Get(ctx, types.NamespacedName{Name: operator.Name, Namespace: operator.Namespace}, foundIngress)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new deployment
+		dep := r.ingressForOperator(operator)
+		log.Info("Creating a new Ingress", "Ingress.Namespace", dep.Namespace, "Ingress.Name", dep.Name)
+		err = r.Create(ctx, dep)
+		if err != nil {
+			log.Error(err, "Failed to create new Ingress", "Ingress.Namespace", dep.Namespace, "Ingress.Name", dep.Name)
+			return ctrl.Result{}, err
+		}
+		// Ingress created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get Ingress")
 		return ctrl.Result{}, err
 	}
 
@@ -213,6 +251,51 @@ func (r *OperatorReconciler) serviceForOperator(m *appv1alpha1.Operator) *corev1
 	return dep
 }
 
+// serviceForOperator returns a operator Service object
+func (r *OperatorReconciler) ingressForOperator(m *appv1alpha1.Operator) *extensionsv1beta1.Ingress {
+	// ls := labelsForOperator(m.Name)
+
+	ingressPaths := []extensionsv1beta1.HTTPIngressPath{
+		extensionsv1beta1.HTTPIngressPath{
+			Path: "/" + m.Name + "(/|$)(.*)",
+			Backend: extensionsv1beta1.IngressBackend{
+				ServiceName: m.Name,
+				ServicePort: intstr.IntOrString{
+					Type:   Int,
+					IntVal: 80,
+				},
+			},
+		},
+	}
+	ingressSpec := extensionsv1beta1.IngressSpec{
+		Rules: []extensionsv1beta1.IngressRule{
+			{
+				Host: "",
+				IngressRuleValue: extensionsv1beta1.IngressRuleValue{
+					HTTP: &extensionsv1beta1.HTTPIngressRuleValue{
+						Paths: ingressPaths,
+					},
+				},
+			},
+		},
+	}
+	ingress := &extensionsv1beta1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name,
+			Namespace: m.Namespace,
+			Annotations: map[string]string{
+				"kubernetes.io/ingress.class":                "nginx",
+				"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+			},
+		},
+		Spec: ingressSpec,
+	}
+
+	// Set Operator instance as the owner and controller
+	ctrl.SetControllerReference(m, ingress, r.Scheme)
+	return ingress
+}
+
 // labelsForOperator returns the labels for selecting the resources
 // belonging to the given operator CR name.
 func labelsForOperator(name string) map[string]string {
@@ -232,5 +315,7 @@ func (r *OperatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appv1alpha1.Operator{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.Service{}).
+		Owns(&extensionsv1beta1.Ingress{}).
 		Complete(r)
 }
