@@ -38,12 +38,14 @@ type OperatorSpec struct {
 type OperatorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Nodes []string `json:"nodes"`
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
+
 
 // Operator is the Schema for the operators API
+// +kubebuilder:subresource:status
 type Operator struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
