@@ -1,0 +1,11 @@
+domain: helloworld.io
+layout: go.kubebuilder.io/v2
+projectName: k8s-helloworld-operator
+repo: github.com/berndonline/k8s-helloworld-operator
+resources:
+- group: app
+  kind: Operator
+  version: v1alpha1
+version: 3-alpha
+plugins:
+  go.sdk.operatorframework.io/v2-alpha: {}
