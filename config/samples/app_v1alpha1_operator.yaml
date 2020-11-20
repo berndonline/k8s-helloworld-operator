@@ -3,5 +3,6 @@ kind: Operator
 metadata:
   name: operator-sample
 spec:
-  # Add fields here
-  foo: bar
+  size: 1
+  response: "Hello, World!"
+  image: ghcr.io/berndonline/k8s/go-helloworld:latest

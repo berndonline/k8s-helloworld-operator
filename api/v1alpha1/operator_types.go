@@ -29,7 +29,9 @@ type OperatorSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Operator. Edit Operator_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	Size  int32  `json:"size"`
+	Image string `json:"image"`
+	Response string `json:"response"`
 }
 
 // OperatorStatus defines the observed state of Operator
