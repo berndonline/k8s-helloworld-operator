@@ -21,8 +21,33 @@ rules:
 - apiGroups:
   - app.helloworld.io
   resources:
+  - operators/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - app.helloworld.io
+  resources:
   - operators/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list

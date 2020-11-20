@@ -149,6 +149,7 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8080,
 							Name:          "operator",
+						}},
 						Env: []corev1.EnvVar{{
 							name: "RESPONSE",
 						  value: &response,
