@@ -24,6 +24,12 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	appv1alpha1 "github.com/berndonline/k8s-helloworld-operator/api/v1alpha1"
 )
 
@@ -39,7 +45,6 @@ type OperatorReconciler struct {
 // +kubebuilder:rbac:groups=app.helloworld.io,resources=operators/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
-
 
 func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// _ = context.Background()
@@ -144,15 +149,15 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image:   &image,
-						Name:    "helloworld",
+						Image: &image,
+						Name:  "helloworld",
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8080,
 							Name:          "operator",
 						}},
 						Env: []corev1.EnvVar{{
-							name: "RESPONSE",
-						  value: &response,
+							name:  "RESPONSE",
+							value: &response,
 						}},
 					}},
 				},

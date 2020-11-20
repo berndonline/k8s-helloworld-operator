@@ -29,8 +29,8 @@ type OperatorSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Operator. Edit Operator_types.go to remove/update
-	Size  int32  `json:"size"`
-	Image string `json:"image"`
+	Size     int32  `json:"size"`
+	Image    string `json:"image"`
 	Response string `json:"response"`
 }
 
@@ -42,7 +42,6 @@ type OperatorStatus struct {
 }
 
 // +kubebuilder:object:root=true
-
 
 // Operator is the Schema for the operators API
 // +kubebuilder:subresource:status
