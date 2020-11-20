@@ -65,7 +65,7 @@ const (
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;
+// +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 
 func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// _ = context.Background()
@@ -125,11 +125,11 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// List the pods for this operator's deployment
 	podList := &corev1.PodList{}
 	listOpts := []client.ListOption{
-		client.InNamespace(operator.Namespace),
-		client.MatchingLabels(labelsForOperator(operator.Name)),
+		client.InNamespace(found.Namespace),
+		client.MatchingLabels(labelsForOperator(found.Name)),
 	}
 	if err = r.List(ctx, podList, listOpts...); err != nil {
-		log.Error(err, "Failed to list pods", "Operator.Namespace", operator.Namespace, "Operator.Name", operator.Name)
+		log.Error(err, "Failed to list pods", "Operator.Namespace", found.Namespace, "Operator.Name", found.Name)
 		return ctrl.Result{}, err
 	}
 	podNames := getPodNames(podList.Items)
@@ -148,7 +148,7 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	foundService := &corev1.Service{}
 	err = r.Get(ctx, types.NamespacedName{Name: operator.Name, Namespace: operator.Namespace}, foundService)
 	if err != nil && errors.IsNotFound(err) {
-		// Define a new deployment
+		// Define a new service
 		dep := r.serviceForOperator(operator)
 		log.Info("Creating a new Service", "Service.Namespace", dep.Namespace, "Service.Name", dep.Name)
 		err = r.Create(ctx, dep)
@@ -167,7 +167,7 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	foundIngress := &networkingv1beta1.Ingress{}
 	err = r.Get(ctx, types.NamespacedName{Name: operator.Name, Namespace: operator.Namespace}, foundIngress)
 	if err != nil && errors.IsNotFound(err) {
-		// Define a new deployment
+		// Define a new ingress
 		dep := r.ingressForOperator(operator)
 		log.Info("Creating a new Ingress", "Ingress.Namespace", dep.Namespace, "Ingress.Name", dep.Name)
 		err = r.Create(ctx, dep)
@@ -251,7 +251,7 @@ func (r *OperatorReconciler) serviceForOperator(m *appv1alpha1.Operator) *corev1
 	return dep
 }
 
-// serviceForOperator returns a operator Service object
+// serviceForOperator returns a operator Ingress object
 func (r *OperatorReconciler) ingressForOperator(m *appv1alpha1.Operator) *networkingv1beta1.Ingress {
 	// ls := labelsForOperator(m.Name)
 
@@ -262,7 +262,7 @@ func (r *OperatorReconciler) ingressForOperator(m *appv1alpha1.Operator) *networ
 				ServiceName: m.Name,
 				ServicePort: intstr.IntOrString{
 					Type:   Int,
-					IntVal: 80,
+					IntVal: 8080,
 				},
 			},
 		},
