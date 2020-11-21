@@ -28,6 +28,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -106,6 +107,19 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	} else if err != nil {
 		log.Error(err, "Failed to get Deployment")
 		return ctrl.Result{}, err
+	}
+
+	// Check if the deployment Spec.Template, matches the found Spec.Template
+	deploy := r.deploymentForOperator(operator)
+	if !equality.Semantic.DeepDerivative(deploy.Spec.Template, found.Spec.Template) {
+		found = deploy
+		log.Info("Updating Deployment", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
+		err := r.Update(ctx, found)
+		if err != nil {
+			log.Error(err, "Failed to update Deployment", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Ensure the deployment size is the same as the spec
@@ -206,8 +220,9 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image: m.Spec.Image,
-						Name:  "helloworld",
+						Image:           m.Spec.Image,
+						ImagePullPolicy: "Always",
+						Name:            "helloworld",
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 8080,
 							Name:          "operator",
@@ -221,6 +236,7 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 			},
 		},
 	}
+
 	// Set Operator instance as the owner and controller
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
