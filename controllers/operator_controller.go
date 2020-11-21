@@ -65,6 +65,7 @@ const (
 // +kubebuilder:rbac:groups=app.helloworld.io,resources=operators/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 
@@ -135,27 +136,37 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// Update the Operator status with the pod names
-	// List the pods for this operator's deployment
-	podList := &corev1.PodList{}
-	listOpts := []client.ListOption{
-		client.InNamespace(found.Namespace),
-		client.MatchingLabels(labelsForOperator(found.Name)),
-	}
-	if err = r.List(ctx, podList, listOpts...); err != nil {
-		log.Error(err, "Failed to list pods", "Operator.Namespace", found.Namespace, "Operator.Name", found.Name)
-		return ctrl.Result{}, err
-	}
-	podNames := getPodNames(podList.Items)
-
-	// Update status.Nodes if needed
-	if !reflect.DeepEqual(podNames, operator.Status.Nodes) {
-		operator.Status.Nodes = podNames
-		err := r.Status().Update(ctx, operator)
+	// Check if the configmap already exists, if not create a new one
+	foundConfigMap := &corev1.ConfigMap{}
+	err = r.Get(ctx, types.NamespacedName{Name: operator.Name, Namespace: operator.Namespace}, foundConfigMap)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new ingress
+		cm := r.configMapForOperator(operator)
+		log.Info("Creating a new ConfigMap", "ConfigMap.Namespace", cm.Namespace, "ConfigMap.Name", cm.Name)
+		err = r.Create(ctx, cm)
 		if err != nil {
-			log.Error(err, "Failed to update Operator status")
+			log.Error(err, "Failed to create new ConfigMap", "ConfigMap.Namespace", cm.Namespace, "ConfigMap.Name", cm.Name)
 			return ctrl.Result{}, err
 		}
+
+		// ConfigMap created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get ConfigMap")
+		return ctrl.Result{}, err
+	}
+
+	// Check if the ConfigMap Data, matches the found Data
+	configMap := r.configMapForOperator(operator)
+	if !equality.Semantic.DeepDerivative(configMap.Data, foundConfigMap.Data) {
+		foundConfigMap = configMap
+		log.Info("Updating ConfigMap", "ConfigMap.Namespace", foundConfigMap.Namespace, "ConfigMap.Name", foundConfigMap.Name)
+		err := r.Update(ctx, foundConfigMap)
+		if err != nil {
+			log.Error(err, "Failed to update ConfigMap", "ConfigMap.Namespace", foundConfigMap.Namespace, "ConfigMap.Name", foundConfigMap.Name)
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	// Check if the service already exists, if not create a new one
@@ -196,6 +207,29 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
+	// Update the Operator status with the pod names
+	// List the pods for this operator's deployment
+	podList := &corev1.PodList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(found.Namespace),
+		client.MatchingLabels(labelsForOperator(found.Name)),
+	}
+	if err = r.List(ctx, podList, listOpts...); err != nil {
+		log.Error(err, "Failed to list pods", "Operator.Namespace", found.Namespace, "Operator.Name", found.Name)
+		return ctrl.Result{}, err
+	}
+	podNames := getPodNames(podList.Items)
+
+	// Update status.Nodes if needed
+	if !reflect.DeepEqual(podNames, operator.Status.Nodes) {
+		operator.Status.Nodes = podNames
+		err := r.Status().Update(ctx, operator)
+		if err != nil {
+			log.Error(err, "Failed to update Operator status")
+			return ctrl.Result{}, err
+		}
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -231,12 +265,51 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 							Name:  "RESPONSE",
 							Value: m.Spec.Response,
 						}},
+						EnvFrom: []corev1.EnvFromSource{{
+							ConfigMapRef: &corev1.ConfigMapEnvSource{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: m.Name,
+								},
+							},
+						}},
+						VolumeMounts: []corev1.VolumeMount{{
+							Name:      m.Name,
+							ReadOnly:  true,
+							MountPath: "/helloworld/",
+						}},
+					}},
+					Volumes: []corev1.Volume{{
+						Name: m.Name,
+						VolumeSource: corev1.VolumeSource{
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: m.Name,
+								},
+							},
+						},
 					}},
 				},
 			},
 		},
 	}
 
+	// Set Operator instance as the owner and controller
+	ctrl.SetControllerReference(m, dep, r.Scheme)
+	return dep
+}
+
+// configMapForOperator returns a operator Service object
+func (r *OperatorReconciler) configMapForOperator(m *appv1alpha1.Operator) *corev1.ConfigMap {
+	ls := labelsForOperator(m.Name)
+
+	dep := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Name,
+			Namespace: m.Namespace,
+			Labels:    ls,
+		},
+		Data: map[string]string{"helloworld.txt": m.Spec.Response},
+	}
 	// Set Operator instance as the owner and controller
 	ctrl.SetControllerReference(m, dep, r.Scheme)
 	return dep
@@ -253,12 +326,11 @@ func (r *OperatorReconciler) serviceForOperator(m *appv1alpha1.Operator) *corev1
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: ls,
-			Ports: []corev1.ServicePort{
-				corev1.ServicePort{
-					Port: 8080,
-					Name: "port8080",
-				},
-			},
+			Ports: []corev1.ServicePort{{
+				// corev1.ServicePort{
+				Port: 8080,
+				Name: "port8080",
+			}},
 			Type: "ClusterIP",
 		},
 	}
@@ -331,6 +403,7 @@ func (r *OperatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appv1alpha1.Operator{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
 		Owns(&networkingv1beta1.Ingress{}).
 		Complete(r)
