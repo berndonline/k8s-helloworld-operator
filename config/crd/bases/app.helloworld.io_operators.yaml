@@ -38,6 +38,8 @@ spec:
           properties:
             image:
               type: string
+            mongodb:
+              type: boolean
             response:
               type: string
             size:
@@ -47,6 +49,7 @@ spec:
               type: integer
           required:
           - image
+          - mongodb
           - response
           - size
           type: object

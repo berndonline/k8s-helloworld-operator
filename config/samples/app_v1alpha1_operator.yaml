@@ -6,3 +6,4 @@ spec:
   size: 1
   response: "Hello, World!"
   image: "ghcr.io/berndonline/k8s/go-helloworld:latest"
+  mongodb: false
