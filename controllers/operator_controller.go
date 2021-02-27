@@ -305,6 +305,10 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 						Env: []corev1.EnvVar{{
 							Name:  "RESPONSE",
 							Value: m.Spec.Response,
+						},
+						{
+							Name:  "MONGODB",
+							Value: m.Spec.MongoDB,
 						}},
 						EnvFrom: []corev1.EnvFromSource{{
 							ConfigMapRef: &corev1.ConfigMapEnvSource{
