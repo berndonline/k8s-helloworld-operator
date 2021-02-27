@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"reflect"
+	"strconv"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -306,10 +307,10 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 							Name:  "RESPONSE",
 							Value: m.Spec.Response,
 						},
-						{
-							Name:  "MONGODB",
-							Value: m.Spec.MongoDB,
-						}},
+							{
+								Name:  "MONGODB",
+								Value: strconv.FormatBool(m.Spec.MongoDB),
+							}},
 						EnvFrom: []corev1.EnvFromSource{{
 							ConfigMapRef: &corev1.ConfigMapEnvSource{
 								LocalObjectReference: corev1.LocalObjectReference{
