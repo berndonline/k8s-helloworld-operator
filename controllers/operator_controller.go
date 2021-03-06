@@ -295,35 +295,70 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 					Labels: ls,
 				},
 				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{
-						Image:           m.Spec.Image,
-						ImagePullPolicy: "Always",
-						Name:            "helloworld",
-						Ports: []corev1.ContainerPort{{
-							ContainerPort: 8080,
-							Name:          "operator",
-						}},
-						Env: []corev1.EnvVar{{
-							Name:  "RESPONSE",
-							Value: m.Spec.Response,
-						},
-							{
-								Name:  "MONGODB",
-								Value: strconv.FormatBool(m.Spec.MongoDB),
-							}},
-						EnvFrom: []corev1.EnvFromSource{{
-							ConfigMapRef: &corev1.ConfigMapEnvSource{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: m.Name,
-								},
+					Containers: []corev1.Container{
+						{
+							Image:           "jaegertracing/jaeger-agent:latest",
+							ImagePullPolicy: corev1.PullAlways,
+							Name:            "jaeger-agent",
+							Ports: []corev1.ContainerPort{{
+								ContainerPort: 5775,
+								Protocol:      corev1.ProtocolUDP,
+								Name:          "zk-compact-trft",
 							},
+								{
+									ContainerPort: 5778,
+									Protocol:      corev1.ProtocolTCP,
+									Name:          "config-rest",
+								},
+								{
+									ContainerPort: 6831,
+									Protocol:      corev1.ProtocolUDP,
+									Name:          "jg-compact-trft",
+								},
+								{
+									ContainerPort: 6832,
+									Protocol:      corev1.ProtocolUDP,
+									Name:          "jg-binary-trft",
+								},
+								{
+									ContainerPort: 14271,
+									Protocol:      corev1.ProtocolTCP,
+									Name:          "admin-http",
+								}},
+							Args: []string{
+								"--reporter.grpc.host-port=dns:///jaeger-collector-headless.observability:14250",
+								"--reporter.type=grpc",
+							},
+						},
+						{
+							Image:           m.Spec.Image,
+							ImagePullPolicy: corev1.PullAlways,
+							Name:            "helloworld",
+							Ports: []corev1.ContainerPort{{
+								ContainerPort: 8080,
+								Name:          "operator",
+							}},
+							Env: []corev1.EnvVar{{
+								Name:  "RESPONSE",
+								Value: m.Spec.Response,
+							},
+								{
+									Name:  "MONGODB",
+									Value: strconv.FormatBool(m.Spec.MongoDB),
+								}},
+							EnvFrom: []corev1.EnvFromSource{{
+								ConfigMapRef: &corev1.ConfigMapEnvSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: m.Name,
+									},
+								},
+							}},
+							VolumeMounts: []corev1.VolumeMount{{
+								Name:      m.Name,
+								ReadOnly:  true,
+								MountPath: "/helloworld/",
+							}},
 						}},
-						VolumeMounts: []corev1.VolumeMount{{
-							Name:      m.Name,
-							ReadOnly:  true,
-							MountPath: "/helloworld/",
-						}},
-					}},
 					Volumes: []corev1.Volume{{
 						Name: m.Name,
 						VolumeSource: corev1.VolumeSource{
