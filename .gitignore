@@ -22,3 +22,35 @@ bin
 *.swp
 *.swo
 *~
+
+
+# Compiled files
+.DS_Store
+*.tfstate
+*.tfstate.backup
+*.plan
+*.retry
+terraform.plan
+private.key
+cert.crt
+plan.out
+temp/
+*.backup
+
+# Module directory
+.terraform/
+.idea/*
+.scannerwork/*
+
+*.pyc
+
+### Packer ###
+# Cache objects
+packer_cache/
+variables.json
+
+# For built boxes
+*.box
+
+### Ansible ###
+*.retry

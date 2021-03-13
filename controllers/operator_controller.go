@@ -409,8 +409,12 @@ func (r *OperatorReconciler) serviceForOperator(m *appv1alpha1.Operator) *corev1
 			Selector: ls,
 			Ports: []corev1.ServicePort{{
 				// corev1.ServicePort{
-				Port: 8080,
-				Name: "port8080",
+				Port: 80,
+				Name: "port80",
+				TargetPort: intstr.IntOrString{
+					IntVal: 8080,
+					Type:   intstr.Int,
+				},
 			}},
 			Type: "ClusterIP",
 		},
@@ -431,7 +435,7 @@ func (r *OperatorReconciler) ingressForOperator(m *appv1alpha1.Operator) *networ
 				ServiceName: m.Name,
 				ServicePort: intstr.IntOrString{
 					Type:   Int,
-					IntVal: 8080,
+					IntVal: 80,
 				},
 			},
 		},
