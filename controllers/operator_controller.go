@@ -20,6 +20,7 @@ import (
 	"context"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -231,47 +232,6 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	// Check if the deployment already exists, if not create a new one
-	if operator.Spec.MongoDB == true {
-		found := &appsv1.Deployment{}
-		err = r.Get(ctx, types.NamespacedName{Name: "mongodb", Namespace: operator.Namespace}, found)
-		if err != nil && errors.IsNotFound(err) {
-			// Define a new deployment
-			dep := r.mongodbForOperator(operator)
-			log.Info("Creating a new MongoDB Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-			err = r.Create(ctx, dep)
-			if err != nil {
-				log.Error(err, "Failed to create new MongoDB Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-				return ctrl.Result{}, err
-			}
-			// Deployment created successfully - return and requeue
-			return ctrl.Result{Requeue: true}, nil
-		} else if err != nil {
-			log.Error(err, "Failed to get MongoDB Deployment")
-			return ctrl.Result{}, err
-		}
-	}
-
-	if operator.Spec.MongoDB == true {
-		foundService := &corev1.Service{}
-		err = r.Get(ctx, types.NamespacedName{Name: "mongodb", Namespace: operator.Namespace}, foundService)
-		if err != nil && errors.IsNotFound(err) {
-			// Define a new service
-			dep := r.mongoDBserviceForOperator(operator)
-			log.Info("Creating a new MongoDB Service", "Service.Namespace", dep.Namespace, "Service.Name", dep.Name)
-			err = r.Create(ctx, dep)
-			if err != nil {
-				log.Error(err, "Failed to create new MongoDB Service", "Service.Namespace", dep.Namespace, "Service.Name", dep.Name)
-				return ctrl.Result{}, err
-			}
-			// Service created successfully - return and requeue
-			return ctrl.Result{Requeue: true}, nil
-		} else if err != nil {
-			log.Error(err, "Failed to get MongoDB Service")
-			return ctrl.Result{}, err
-		}
-	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -279,6 +239,7 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *appsv1.Deployment {
 	ls := labelsForOperator(m.Name)
 	replicas := m.Spec.Size
+	servers := strings.Join(m.Spec.DBservers, ",")
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -338,14 +299,32 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 								ContainerPort: 8080,
 								Name:          "operator",
 							}},
-							Env: []corev1.EnvVar{{
-								Name:  "RESPONSE",
-								Value: m.Spec.Response,
-							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "RESPONSE",
+									Value: m.Spec.Response,
+								},
 								{
 									Name:  "MONGODB",
 									Value: strconv.FormatBool(m.Spec.MongoDB),
-								}},
+								},
+								{
+									Name:  "DBSERVERS",
+									Value: servers,
+								},
+								{
+									Name:  "DATABASE",
+									Value: m.Spec.Database,
+								},
+								{
+									Name:  "DBUSER",
+									Value: m.Spec.DBuser,
+								},
+								{
+									Name:  "DBPASS",
+									Value: m.Spec.DBpass,
+								},
+							},
 							EnvFrom: []corev1.EnvFromSource{{
 								ConfigMapRef: &corev1.ConfigMapEnvSource{
 									LocalObjectReference: corev1.LocalObjectReference{
@@ -467,69 +446,6 @@ func (r *OperatorReconciler) ingressForOperator(m *appv1alpha1.Operator) *networ
 	// Set Operator instance as the owner and controller
 	ctrl.SetControllerReference(m, ingress, r.Scheme)
 	return ingress
-}
-
-// deploymentForOperator returns a operator Deployment object for a MongoDB
-func (r *OperatorReconciler) mongodbForOperator(m *appv1alpha1.Operator) *appsv1.Deployment {
-	ls := labelsForOperator("mongodb")
-	replicas := int32(1)
-
-	dep := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mongodb",
-			Namespace: m.Namespace,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: ls,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: ls,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{
-						Image:           "mongo:4.0.4",
-						ImagePullPolicy: "Always",
-						Name:            "mongodb",
-						Ports: []corev1.ContainerPort{{
-							ContainerPort: 27017,
-							Name:          "mongodb",
-						}},
-					}},
-				},
-			},
-		},
-	}
-
-	// Set Operator instance as the owner and controller
-	ctrl.SetControllerReference(m, dep, r.Scheme)
-	return dep
-}
-
-// serviceForOperator returns a operator Service object
-func (r *OperatorReconciler) mongoDBserviceForOperator(m *appv1alpha1.Operator) *corev1.Service {
-	ls := labelsForOperator("mongodb")
-
-	dep := &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mongodb",
-			Namespace: m.Namespace,
-		},
-		Spec: corev1.ServiceSpec{
-			Selector: ls,
-			Ports: []corev1.ServicePort{{
-				// corev1.ServicePort{
-				Port: 27017,
-				Name: "port27017",
-			}},
-			Type: "ClusterIP",
-		},
-	}
-	// Set Operator instance as the owner and controller
-	ctrl.SetControllerReference(m, dep, r.Scheme)
-	return dep
 }
 
 // labelsForOperator returns the labels for selecting the resources

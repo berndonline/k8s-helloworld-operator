@@ -36,6 +36,16 @@ spec:
         spec:
           description: OperatorSpec defines the desired state of Operator
           properties:
+            database:
+              type: string
+            dbpass:
+              type: string
+            dbservers:
+              items:
+                type: string
+              type: array
+            dbuser:
+              type: string
             image:
               type: string
             mongodb:
@@ -48,6 +58,9 @@ spec:
               format: int32
               type: integer
           required:
+          - database
+          - dbpass
+          - dbuser
           - image
           - mongodb
           - response
