@@ -29,14 +29,15 @@ type OperatorSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of Operator. Edit Operator_types.go to remove/update
-	Size      int32    `json:"size"`
-	Image     string   `json:"image"`
-	Response  string   `json:"response"`
-	MongoDB   bool     `json:"mongodb"`
-	DBservers []string `json:"dbservers,omitempty"`
-	Database  string   `json:"database"`
-	DBuser    string   `json:"dbuser"`
-	DBpass    string   `json:"dbpass"`
+	Size            int32    `json:"size"`
+	Image           string   `json:"image"`
+	Response        string   `json:"response"`
+	MongoDB         bool     `json:"mongodb"`
+	DBservers       []string `json:"dbservers,omitempty"`
+	Database        string   `json:"database"`
+	DBuser          string   `json:"dbuser"`
+	DBpass          string   `json:"dbpass"`
+	JaegerCollector []string `json:"jaegercollector,omitempty"`
 }
 
 // OperatorStatus defines the observed state of Operator

@@ -48,6 +48,10 @@ spec:
               type: string
             image:
               type: string
+            jaegercollector:
+              items:
+                type: string
+              type: array
             mongodb:
               type: boolean
             response:

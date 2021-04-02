@@ -240,6 +240,7 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 	ls := labelsForOperator(m.Name)
 	replicas := m.Spec.Size
 	servers := strings.Join(m.Spec.DBservers, ",")
+	args := m.Spec.JaegerCollector
 
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -286,10 +287,7 @@ func (r *OperatorReconciler) deploymentForOperator(m *appv1alpha1.Operator) *app
 									Protocol:      corev1.ProtocolTCP,
 									Name:          "admin-http",
 								}},
-							Args: []string{
-								"--reporter.grpc.host-port=dns:///jaeger-collector-headless.observability:14250",
-								"--reporter.type=grpc",
-							},
+							Args: args,
 						},
 						{
 							Image:           m.Spec.Image,
