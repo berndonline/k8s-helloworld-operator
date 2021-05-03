@@ -1,19 +1,19 @@
 apiVersion: app.helloworld.io/v1alpha1
 kind: Operator
 metadata:
-  name: operator-sample
+  name: sample
 spec:
   size: 1
   response: "Hello, World!"
   image: "ghcr.io/berndonline/k8s/go-helloworld:latest"
   mongodb: false
   dbservers:
-    - xxxx.xsiki.mongodb.net:27017
-    - xxxx.xsiki.mongodb.net:27017
-    - xxxx.xsiki.mongodb.net:27017
+    - xxxx.xxxx.mongodb.net:27017
+    - xxxx.xxxx.mongodb.net:27017
+    - xxxx.xxxx.mongodb.net:27017
   database: contents_db
-  dbuser: admin
-  dbpass: xxxxx
+  dbuser: xxxx
+  dbpass: xxxx
   jaegercollector:
-    - "--reporter.grpc.host-port=dns:///grafana-agent-traces.grafanacloud:14250"
+    - "--reporter.grpc.host-port=dns:///jaeger-collector-headless.observability:14250"
     - "--reporter.type=grpc"
