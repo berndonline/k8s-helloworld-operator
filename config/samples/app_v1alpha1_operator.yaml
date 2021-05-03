@@ -7,3 +7,13 @@ spec:
   response: "Hello, World!"
   image: "ghcr.io/berndonline/k8s/go-helloworld:latest"
   mongodb: false
+  dbservers:
+    - xxxx.xsiki.mongodb.net:27017
+    - xxxx.xsiki.mongodb.net:27017
+    - xxxx.xsiki.mongodb.net:27017
+  database: contents_db
+  dbuser: admin
+  dbpass: xxxxx
+  jaegercollector:
+    - "--reporter.grpc.host-port=dns:///grafana-agent-traces.grafanacloud:14250"
+    - "--reporter.type=grpc"
