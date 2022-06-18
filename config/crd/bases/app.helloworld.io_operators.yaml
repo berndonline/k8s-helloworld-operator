@@ -62,6 +62,9 @@ spec:
               format: int32
               type: integer
           required:
+          - database
+          - dbpass
+          - dbuser
           - image
           - mongodb
           - response
