@@ -1,5 +1,5 @@
 /*
-
+Copyright 2022.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ type OperatorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Operator. Edit Operator_types.go to remove/update
+	// Foo is an example field of Operator. Edit operator_types.go to remove/update
 	Size            int32    `json:"size"`
 	Image           string   `json:"image"`
 	Response        string   `json:"response"`
@@ -47,10 +47,10 @@ type OperatorStatus struct {
 	Nodes []string `json:"nodes"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
 // Operator is the Schema for the operators API
-// +kubebuilder:subresource:status
 type Operator struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -59,7 +59,7 @@ type Operator struct {
 	Status OperatorStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // OperatorList contains a list of Operator
 type OperatorList struct {

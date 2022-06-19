@@ -1,7 +1,7 @@
 apiVersion: app.helloworld.io/v1alpha1
 kind: Operator
 metadata:
-  name: sample
+  name: operator-sample
 spec:
   size: 1
   response: "Hello, World!"

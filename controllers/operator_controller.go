@@ -1,5 +1,5 @@
 /*
-
+Copyright 2022.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,12 +30,13 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1beta1 "k8s.io/api/networking/v1beta1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	appv1alpha1 "github.com/berndonline/k8s-helloworld-operator/api/v1alpha1"
 )
@@ -71,12 +73,17 @@ const (
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 
-func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	// _ = context.Background()
-	// _ = r.Log.WithValues("operator", req.NamespacedName)
-
-	ctx := context.Background()
-	log := r.Log.WithValues("operator", req.NamespacedName)
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+// TODO(user): Modify the Reconcile function to compare the state specified by
+// the Operator object against the actual cluster state, and then
+// perform operations to make the cluster state reflect the state specified by
+// the user.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.1/pkg/reconcile
+func (r *OperatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := ctrllog.FromContext(ctx)
 	// Fetch the Operator instance
 	operator := &appv1alpha1.Operator{}
 	err := r.Get(ctx, req.NamespacedName, operator)
@@ -135,7 +142,7 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return ctrl.Result{}, err
 		}
 		// Spec updated - return and requeue
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
 
 	// Check if the configmap already exists, if not create a new one
@@ -191,7 +198,7 @@ func (r *OperatorReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Check if the ingress already exists, if not create a new one
-	foundIngress := &networkingv1beta1.Ingress{}
+	foundIngress := &networkingv1.Ingress{}
 	err = r.Get(ctx, types.NamespacedName{Name: operator.Name, Namespace: operator.Namespace}, foundIngress)
 	if err != nil && errors.IsNotFound(err) {
 		// Define a new ingress
@@ -402,34 +409,36 @@ func (r *OperatorReconciler) serviceForOperator(m *appv1alpha1.Operator) *corev1
 }
 
 // serviceForOperator returns a operator Ingress object
-func (r *OperatorReconciler) ingressForOperator(m *appv1alpha1.Operator) *networkingv1beta1.Ingress {
+func (r *OperatorReconciler) ingressForOperator(m *appv1alpha1.Operator) *networkingv1.Ingress {
 	// ls := labelsForOperator(m.Name)
 
-	ingressPaths := []networkingv1beta1.HTTPIngressPath{
-		networkingv1beta1.HTTPIngressPath{
-			Path: "/" + m.Name + "(/|$)(.*)",
-			Backend: networkingv1beta1.IngressBackend{
-				ServiceName: m.Name,
-				ServicePort: intstr.IntOrString{
-					Type:   Int,
-					IntVal: 80,
+	ingressPaths := []networkingv1.HTTPIngressPath{
+		networkingv1.HTTPIngressPath{
+			Path:     "/" + m.Name + "(/|$)(.*)",
+			PathType: func() *networkingv1.PathType { s := networkingv1.PathTypeImplementationSpecific; return &s }(),
+			Backend: networkingv1.IngressBackend{
+				Service: &networkingv1.IngressServiceBackend{
+					Name: m.Name,
+					Port: networkingv1.ServiceBackendPort{
+						Number: 80,
+					},
 				},
 			},
 		},
 	}
-	ingressSpec := networkingv1beta1.IngressSpec{
-		Rules: []networkingv1beta1.IngressRule{
+	ingressSpec := networkingv1.IngressSpec{
+		Rules: []networkingv1.IngressRule{
 			{
 				Host: "",
-				IngressRuleValue: networkingv1beta1.IngressRuleValue{
-					HTTP: &networkingv1beta1.HTTPIngressRuleValue{
+				IngressRuleValue: networkingv1.IngressRuleValue{
+					HTTP: &networkingv1.HTTPIngressRuleValue{
 						Paths: ingressPaths,
 					},
 				},
 			},
 		},
 	}
-	ingress := &networkingv1beta1.Ingress{
+	ingress := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Name,
 			Namespace: m.Namespace,
@@ -461,12 +470,13 @@ func getPodNames(pods []corev1.Pod) []string {
 	return podNames
 }
 
+// SetupWithManager sets up the controller with the Manager.
 func (r *OperatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appv1alpha1.Operator{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Service{}).
-		Owns(&networkingv1beta1.Ingress{}).
+		Owns(&networkingv1.Ingress{}).
 		Complete(r)
 }
